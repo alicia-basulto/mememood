@@ -9,5 +9,7 @@ export default function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>,
 ) {
-  res.status(200).json({ name: "John Doe" });
+  const execSync = require('child_process').execSync;
+  const output = execSync('ls out/memes', { encoding: 'utf-8' });  
+  res.status(200).json({ name: "memes/defaultMeme.gif" });
 }

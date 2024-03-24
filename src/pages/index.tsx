@@ -14,7 +14,7 @@ export default function Home() {
   if (isLoading) return "Loading...";
   return (
     <div>
-      <h1>{data.name}</h1>
+      <img src={data.name}></img>
     </div>
-  );
+  ); 
 }
