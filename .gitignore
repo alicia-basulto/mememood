@@ -8,3 +8,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
+public/sw.js
+public/sw.js.map
+public/workbox-e43f5367.js
+public/workbox-e43f5367.js.map
