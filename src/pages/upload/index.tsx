@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button"
 import { JSX, SVGProps, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Crop } from "@/components/ui/crop"
+import gifsicle from "../../../public/gifsicle.min.js";
+
 
 function readFile(file) {
   return new Promise((resolve) => {
@@ -15,12 +17,29 @@ function readFile(file) {
 export default function Component() {
   const [gifSrc, setGifSrc] = useState("")
   const [gifUrl, setGifUrl] = useState("")
+  const [gifUrlOutput, setGifUrlOutput] = useState("")
+  const [crop, setCrop] = useState({ x: 0, y: 0, width: 0, height: 0 })
   const onFileChange = async (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0]
       let imageDataUrl = await readFile(file)
       setGifSrc(imageDataUrl)
     }
+  }
+
+  const previewMeme = ()=>{
+    gifsicle.run({
+      input: [{
+          file: gifSrc,
+          name: "1.gif",
+      }],
+      command: [`
+      --resize 64x64 --crop ${crop.x},${crop.y}+${crop.width}x${crop.height} 1.gif -o /out/out.gif`],
+    })
+    .then(outGifFiles => {
+      console.log(outGifFiles);
+      setGifUrlOutput(URL.createObjectURL(outGifFiles[0]))
+    });
   }
   //TODO: get name and set a input to change the name
 
@@ -40,8 +59,9 @@ export default function Component() {
             <Button onClick={e => setGifSrc(gifUrl)} type="submit">Go</Button>
           </div>
           {gifSrc.length ? <>
-            <Crop path={gifSrc} />
-            <Button className="w-full" variant="outline">
+            <Crop path={gifSrc} setCrop={setCrop} />
+            <img src={gifUrlOutput}></img>
+            <Button onClick={previewMeme} className="w-full" variant="outline">
               <ImageIcon className="mr-2 h-4 w-4" />
               Preview Meme
             </Button>
@@ -50,7 +70,7 @@ export default function Component() {
 
         </CardContent>
       </Card>
-      </div>
+    </div>
   )
 }
 

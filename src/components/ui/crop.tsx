@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import Cropper from 'react-easy-crop'
 
-type Props = {
-    path:string
-}
+type Props = { path: string; setCrop: React.Dispatch<React.SetStateAction<{ x: number; y: number; width: number; height: number; }>>; }
 
 export const Crop = (props:Props) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
@@ -19,8 +17,9 @@ export const Crop = (props:Props) => {
     clearTimeout(touchTimeoutRef.current)
   }, [])
 
-  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+  const onCropComplete = (croppedArea:{ x: number; y: number; width: number; height: number; }, croppedAreaPixels:{ x: number; y: number; width: number; height: number; }) => {
     console.log(croppedArea, croppedAreaPixels)
+    props.setCrop(croppedAreaPixels);
   }
 
   const onWheelRequest = (e) => {
@@ -88,7 +87,7 @@ export const Crop = (props:Props) => {
           step={0.1}
           aria-labelledby="Zoom"
           onChange={(e) => {
-            setZoom(e.target.value)
+            setZoom(Number(e.target.value))
           }}
           className="zoom-range"
         />
