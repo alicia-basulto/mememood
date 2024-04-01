@@ -10,6 +10,7 @@ import useSWR from "swr";
 import { JSX, SVGProps } from "react";
 import { Progress } from "@/components/ui/progress";
 import { DataStorage } from "./api/memoryStorage";
+import { platform } from "os";
 const fetcher = (url: string | URL | Request) => fetch(url).then((res) => res.json());
 
 export default function Component() {
@@ -18,6 +19,23 @@ export default function Component() {
         "/api/hello",
         fetcher
     );
+
+    const playMeme = async (name: string) => {
+      try {
+        const response = await fetch(`/api/playMeme?nameMeme=${encodeURIComponent(name)}`);
+      } catch (error) {
+        console.error('Error occurred:', error);
+        // Handle error
+      }
+    };
+    const handleClick = async (item: string, event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+      try {
+        await playMeme(item);
+      } catch (error) {
+        console.error('Error occurred:', error);
+      }
+    };
+  
 
     const { data: dataStorage, error: errorStorage, isLoading: isLoadingStorage } = useSWR(
       "/api/memoryStorage", fetcher);
@@ -37,6 +55,7 @@ export default function Component() {
               src={item}
             />
             <Button
+              onClick={(event) => handleClick(item, event)}
               className="absolute top-2 left-2 rounded-full translate-x-0.5 translate-y-0.5 group-hover:translate-x-0 group-hover:translate-y-0"
               size="icon"
               variant="ghost"
