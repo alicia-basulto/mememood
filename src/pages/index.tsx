@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import useSWR from "swr";
 import { JSX, SVGProps } from "react";
 import { Progress } from "@/components/ui/progress";
+import { DataStorage } from "./api/memoryStorage";
 const fetcher = (url: string | URL | Request) => fetch(url).then((res) => res.json());
 
 export default function Component() {
@@ -17,9 +18,17 @@ export default function Component() {
         "/api/hello",
         fetcher
     );
+
+    const { data: dataStorage, error: errorStorage, isLoading: isLoadingStorage } = useSWR(
+      "/api/memoryStorage", fetcher);
+
     if (error) return "An error has occurred.";
+    if (errorStorage) return "An error has occurred.";
     if (isLoading) return "Loading...";
+    if (isLoadingStorage) return "Loading Storage...";
+
     let memes : string[]= data;
+    let capacityStorage : DataStorage = dataStorage;
     let memes_jsx = memes.map((item)=>(
         <div className="relative group overflow-hidden rounded-lg aspect-[1/1] border dark:border-gray-800">
             <img
@@ -56,10 +65,10 @@ export default function Component() {
         <div className="grid gap-2">
           <div className="text-sm flex items-center gap-2">
             <ActivityIcon className="w-4 h-4" />
-            <span className="font-semibold">32GB used</span>
-            <span className="ml-auto font-semibold">128GB</span>
+            <span className="font-semibold">{capacityStorage.usageStorage}GB used</span>
+            <span className="ml-auto font-semibold">{capacityStorage.totalStorage}GB</span>
           </div>
-          <Progress value={25} />
+          <Progress  value={capacityStorage.usageStorage * 100 / capacityStorage.totalStorage} />
         </div>
         <Button size="sm">Mode</Button>
         <Button size="sm" variant="outline">
