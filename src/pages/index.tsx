@@ -9,17 +9,21 @@ const fetcher = (url: string | URL | Request) => fetch(url).then((res) => res.js
 
 export default function Component() {
   const { data, error, isLoading } = useSWR(
-    "/api/hello",
+    "/api/listMemes",
     fetcher
   );
   const [checked, setChecked] = useState<boolean[]>([]);
-
 
   useEffect(() => {
     if (data) {
       setChecked(new Array(data.length).fill(false));
     }
   }, [data]);
+
+
+  if (error) return "An error has occurred.";
+  if (isLoading) return "Loading...";
+  let memes: string[] = data;
 
   const handleCheckboxChange = (position: number) => {
     const updatedChecked = checked ? [...checked] : [];
@@ -28,20 +32,39 @@ export default function Component() {
     setChecked(updatedChecked);
   }
 
-  const handleDelete = async () => {
-    try {
-      await fetch(`/api/delete/${id}`, {
-        method: 'DELETE'
-      });
-      console.log('Deleted item with id:', id);
-    } catch (error) {
-      console.error('Error deleting item:', error);
-    }
-  }
 
-  if (error) return "An error has occurred.";
-  if (isLoading) return "Loading...";
-  let memes: string[] = data;
+  // TODO: We could refactor this but maybe it is not even worth it
+  const handlePlayMeme = async () => {
+    const selectedGifPaths = memes.filter((_, i) => checked[i]);
+    await playMeme(selectedGifPaths);
+  };
+
+  const handlePlaySingleMeme = async (meme:number) => {
+    const selectedGifPaths =  [memes[meme]];
+    await playMeme(selectedGifPaths);
+  };
+
+
+
+  const handleDeleteMeme = async () => {
+    const selectedGifPaths = memes.filter((_, i) => checked[i]);
+    await deleteMeme(selectedGifPaths);
+  };
+
+
+  const playMeme = async (gifPaths: string[]) => {
+    const params = new URLSearchParams();
+    gifPaths.forEach((path: string) => params.append('gifs', path));
+    await fetch('/api/playMeme?' + params.toString());
+  };
+
+  const deleteMeme = async (gifPaths: string[]) => {
+    const params = new URLSearchParams();
+    gifPaths.forEach((path: string) => params.append('gifs', path));
+    await fetch('/api/removeMeme?' + params.toString());
+  };
+
+
   let memes_jsx = memes.map((item, i) => (
     <div key={item} className="relative group overflow-hidden rounded-lg aspect-[1/1] border dark:border-gray-800">
       <img
@@ -50,6 +73,7 @@ export default function Component() {
         src={item}
       />
       <Button
+        onClick={() => handlePlaySingleMeme(i)}
         className="absolute top-2 left-2 rounded-full"
         size="icon"
         variant="ghost"
@@ -82,24 +106,23 @@ export default function Component() {
           </div>
           <Progress value={25} />
         </div>
-        <Button size="sm">Mode</Button>
       </header>
       <main className="flex-1 grid p-4 gap-4 md:gap-8 md:p-6">
         <div className="grid grid-cols-1 gap-4 w-full md:grid-cols-2 xl:grid-cols-3">
           {memes_jsx}
         </div>
         <div className="flex justify-center gap-4">
-          {checked.some(Boolean) && <Button size="lg" variant="outline">
+          {checked.some(Boolean) && <Button onClick={handleDeleteMeme} size="lg" variant="outline">
             <TrashIcon className="w-4 h-4 mr-2" />
             Delete
           </Button>}
-          {checked.filter(Boolean).length >= 2 && <Button size="lg" variant="outline">
+          {checked.filter(Boolean).length >= 2 && <Button onClick={handlePlayMeme} size="lg" variant="outline">
             <PlayIcon className="w-4 h-4 mr-2" />
             Play
           </Button>}
         </div>
       </main>
-      </div>
+    </div>
   )
 }
 
@@ -186,7 +209,7 @@ function UploadIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
 }
 
 
-function TrashIcon(props:JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
+function TrashIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}
