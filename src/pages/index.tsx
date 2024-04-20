@@ -5,25 +5,32 @@ import useSWR from "swr";
 import { JSX, SVGProps, useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
+import { DataStorage } from "./api/memoryStorage";
+
 const fetcher = (url: string | URL | Request) => fetch(url).then((res) => res.json());
 
 export default function Component() {
-  const { data, error, isLoading } = useSWR(
+  const { data:dataMemes, error, isLoading } = useSWR(
     "/api/listMemes",
     fetcher
   );
   const [checked, setChecked] = useState<boolean[]>([]);
 
+  const { data:dataStorage,error:error2,isLoading:isLoading2} = useSWR(
+    "/api/memoryStorage", fetcher);
+
   useEffect(() => {
-    if (data) {
-      setChecked(new Array(data.length).fill(false));
+    if (dataMemes) {
+      setChecked(new Array(dataMemes.length).fill(false));
     }
-  }, [data]);
+  }, [dataMemes]);
 
+  
 
-  if (error) return "An error has occurred.";
-  if (isLoading) return "Loading...";
-  let memes: string[] = data;
+  if (error  || error2) return "An error has occurred.";
+  if (isLoading  || isLoading2) return "Loading...";
+  let memes: string[] = dataMemes;
+  let capacityStorage : DataStorage = dataStorage;
 
   const handleCheckboxChange = (position: number) => {
     const updatedChecked = checked ? [...checked] : [];
@@ -101,10 +108,10 @@ export default function Component() {
         <div className="grid gap-2">
           <div className="text-sm flex items-center gap-2">
             <ActivityIcon className="w-4 h-4" />
-            <span className="font-semibold">32GB used</span>
-            <span className="ml-auto font-semibold">128GB</span>
+            <span className="font-semibold">{capacityStorage.usageStorage}GB used</span>
+            <span className="ml-auto font-semibold">{capacityStorage.totalStorage}GB</span>
           </div>
-          <Progress value={25} />
+          <Progress  value={capacityStorage.usageStorage * 100 / capacityStorage.totalStorage} />
         </div>
       </header>
       <main className="flex-1 grid p-4 gap-4 md:gap-8 md:p-6">
