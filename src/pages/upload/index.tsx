@@ -4,9 +4,10 @@ import { JSX, SVGProps, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Crop } from "@/components/ui/crop"
 import gifsicle from "../../../public/gifsicle.min.js";
+import Link from "next/link";
 
 
-function readFile(file) {
+function readFile(file: Blob) {
   return new Promise((resolve) => {
     const reader = new FileReader()
     reader.addEventListener('load', () => resolve(reader.result), false)
@@ -17,31 +18,69 @@ function readFile(file) {
 export default function Component() {
   const [gifSrc, setGifSrc] = useState("")
   const [gifUrl, setGifUrl] = useState("")
+  const [memeName, setMemeName] = useState('');
   const [gifUrlOutput, setGifUrlOutput] = useState("")
   const [crop, setCrop] = useState({ x: 0, y: 0, width: 0, height: 0 })
-  const onFileChange = async (e) => {
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0]
-      let imageDataUrl = await readFile(file)
-      setGifSrc(imageDataUrl)
+      const imageDataUrl = await readFile(file)
+      setGifSrc(imageDataUrl as string)
     }
   }
 
-  const previewMeme = ()=>{
+
+  const saveMeme = () => {
+    if (memeName.length == 0) {
+      return;
+    }
+
     gifsicle.run({
       input: [{
-          file: gifSrc,
-          name: "1.gif",
+        file: gifSrc,
+        name: "1.gif",
+      }],
+      command: [`
+      --resize 64x64 --crop ${crop.x},${crop.y}+${crop.width}x${crop.height} 1.gif -o /out/${memeName}.gif`],
+    })
+      .then(outGifFiles => {
+        console.dir(outGifFiles);
+        const formData = new FormData()
+        formData.append('image', outGifFiles[0])
+
+        fetch('/api/uploadMeme', {
+          method: 'POST',
+          body: formData
+        }).then(() => console.log("end"));
+
+        setGifUrlOutput(URL.createObjectURL(outGifFiles[0]))
+      });
+  }
+  const previewMeme = () => {
+    gifsicle.run({
+      input: [{
+        file: gifSrc,
+        name: "1.gif",
       }],
       command: [`
       --resize 64x64 --crop ${crop.x},${crop.y}+${crop.width}x${crop.height} 1.gif -o /out/out.gif`],
     })
-    .then(outGifFiles => {
-      console.log(outGifFiles);
-      setGifUrlOutput(URL.createObjectURL(outGifFiles[0]))
-    });
+      .then(outGifFiles => {
+        console.dir(outGifFiles);
+        const formData = new FormData()
+        formData.append('image', outGifFiles[0])
+
+        fetch('/api/previewMeme', {
+          method: 'POST',
+          body: formData
+        }).then(() => console.log("end"));
+
+        setGifUrlOutput(URL.createObjectURL(outGifFiles[0]))
+      });
   }
   //TODO: get name and set a input to change the name
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -65,9 +104,18 @@ export default function Component() {
               <ImageIcon className="mr-2 h-4 w-4" />
               Preview Meme
             </Button>
-            <Button className="w-full">Save Meme</Button>
+            <div className="flex items-center gap-2">
+              <Input
+                value={memeName}
+                onChange={(e) => setMemeName(e.target.value)} placeholder="Meme name" type="text" />
+              <Button onClick={saveMeme} disabled={memeName.length == 0} className="w-full">Save Image</Button>
+            </div>
           </> : <></>}
-
+        <Link href="/">
+          <Button className="w-full" variant="outline">
+          Go Back
+        </Button>
+        </Link>
         </CardContent>
       </Card>
     </div>

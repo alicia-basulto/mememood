@@ -6,17 +6,19 @@ import { JSX, SVGProps, useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { DataStorage } from "./api/memoryStorage";
+import { Toggle } from "@/components/ui/toggle";
 
 const fetcher = (url: string | URL | Request) => fetch(url).then((res) => res.json());
 
 export default function Component() {
-  const { data:dataMemes, error, isLoading } = useSWR(
+  const { data: dataMemes, error, isLoading } = useSWR(
     "/api/listMemes",
     fetcher
   );
   const [checked, setChecked] = useState<boolean[]>([]);
+  const [loop, setLoop] = useState(false);
 
-  const { data:dataStorage,error:error2,isLoading:isLoading2} = useSWR(
+  const { data: dataStorage, error: error2, isLoading: isLoading2 } = useSWR(
     "/api/memoryStorage", fetcher);
 
   useEffect(() => {
@@ -25,12 +27,12 @@ export default function Component() {
     }
   }, [dataMemes]);
 
-  
 
-  if (error  || error2) return "An error has occurred.";
-  if (isLoading  || isLoading2) return "Loading...";
+
+  if (error || error2) return "An error has occurred.";
+  if (isLoading || isLoading2) return "Loading...";
   let memes: string[] = dataMemes;
-  let capacityStorage : DataStorage = dataStorage;
+  let capacityStorage: DataStorage = dataStorage;
 
   const handleCheckboxChange = (position: number) => {
     const updatedChecked = checked ? [...checked] : [];
@@ -46,23 +48,22 @@ export default function Component() {
     await playMeme(selectedGifPaths);
   };
 
-  const handlePlaySingleMeme = async (meme:number) => {
-    const selectedGifPaths =  [memes[meme]];
-    await playMeme(selectedGifPaths);
-  };
-
-
 
   const handleDeleteMeme = async () => {
     const selectedGifPaths = memes.filter((_, i) => checked[i]);
     await deleteMeme(selectedGifPaths);
   };
 
-
   const playMeme = async (gifPaths: string[]) => {
     const params = new URLSearchParams();
     gifPaths.forEach((path: string) => params.append('gifs', path));
+    params.append('loop', loop?'true':'false');
     await fetch('/api/playMeme?' + params.toString());
+  };
+
+
+  const clearDisplay = async () => {
+    await fetch("/api/clearDisplay");
   };
 
   const deleteMeme = async (gifPaths: string[]) => {
@@ -79,15 +80,6 @@ export default function Component() {
         className="absolute inset-0 object-cover w-full h-full"
         src={item}
       />
-      <Button
-        onClick={() => handlePlaySingleMeme(i)}
-        className="absolute top-2 left-2 rounded-full"
-        size="icon"
-        variant="ghost"
-      >
-        <PlayIcon className="w-4 h-4" />
-        <span className="sr-only">Play</span>
-      </Button>
       <Checkbox className="absolute top-4 right-4 "
         onClick={() => handleCheckboxChange(i)} />
     </div>
@@ -95,43 +87,88 @@ export default function Component() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="flex items-center h-14 border-b px-4 gap-4">
-        <Button className="lg:hidden" size="icon" variant="outline">
-          <MenuIcon className="w-4 h-4" />
-          <span className="sr-only">Toggle sidebar</span>
-        </Button>
-        <Link href="/upload">
-          <Button className="rounded-full w-8 h-8" size="icon" variant="outline">
-            <UploadIcon className="w-4 h-4" />
-            <span className="sr-only">Upload</span>
-          </Button>
-        </Link>
-        <div className="grid gap-2">
-          <div className="text-sm flex items-center gap-2">
-            <ActivityIcon className="w-4 h-4" />
-            <span className="font-semibold">{capacityStorage.usageStorage}GB used</span>
-            <span className="ml-auto font-semibold">{capacityStorage.totalStorage}GB</span>
+        <div className="flex-1 flex items-center justify-center gap-4">
+          <Link href="/upload">
+            <Button className="rounded-full w-8 h-8" size="icon" variant="outline">
+              <UploadIcon className="w-4 h-4" />
+              <span className="sr-only">Upload</span>
+            </Button>
+          </Link>
+          <div className="grid gap-2 w-full max-w-[50vw]">
+            <div className="text-sm flex items-center gap-2">
+              <ActivityIcon className="w-4 h-4" />
+              <span className="font-semibold">{capacityStorage.usageStorage}GB used</span>
+              <span className="ml-auto font-semibold">{capacityStorage.totalStorage}GB</span>
+            </div>
+            <Progress value={capacityStorage.usageStorage * 100 / capacityStorage.totalStorage} />
           </div>
-          <Progress  value={capacityStorage.usageStorage * 100 / capacityStorage.totalStorage} />
         </div>
       </header>
       <main className="flex-1 grid p-4 gap-4 md:gap-8 md:p-6">
         <div className="grid grid-cols-1 gap-4 w-full md:grid-cols-2 xl:grid-cols-3">
           {memes_jsx}
         </div>
-        <div className="flex justify-center gap-4">
-          {checked.some(Boolean) && <Button onClick={handleDeleteMeme} size="lg" variant="outline">
-            <TrashIcon className="w-4 h-4 mr-2" />
-            Delete
-          </Button>}
-          {checked.filter(Boolean).length >= 2 && <Button onClick={handlePlayMeme} size="lg" variant="outline">
-            <PlayIcon className="w-4 h-4 mr-2" />
-            Play
-          </Button>}
+        <div className="flex justify-center  items-center gap-4">
+         
+          <Button onClick={handlePlayMeme} disabled={!checked.some(Boolean)} variant="outline">
+            <PlayIcon className="w-4 h-4" />
+          </Button>
+          <Button disabled={!checked.some(Boolean)} variant="outline" onClick={()=> setLoop(!loop)}>
+            <CircleIcon className="w-4 h-4"  fill={loop ? 'none' : ''}/>
+          </Button>
+          <Button onClick={handleDeleteMeme}  disabled={!checked.some(Boolean)} variant="outline">
+            <TrashIcon className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" onClick={clearDisplay}>
+            <EraserIcon className="w-4 h-4" />
+          </Button>
         </div>
       </main>
     </div>
   )
 }
+
+
+function CircleIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+    </svg>
+  )
+}
+
+
+function EraserIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+      <path d="M22 21H7" />
+      <path d="m5 11 9 9" />
+    </svg>
+  )
+}
+
 
 function ActivityIcon(props: JSX.IntrinsicAttributes & SVGProps<SVGSVGElement>) {
   return (

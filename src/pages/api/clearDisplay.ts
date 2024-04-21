@@ -6,8 +6,7 @@ export default function handler(
     res: NextApiResponse<string[]>,
 ) {
     if (req.method === 'GET') {
-        const { gifs,loop } = req.query;
-        console.log('Playing memes:', gifs,loop);
+        console.log('Clear display:');
         // Implement your meme playing logic here
         res.status(200).end();
     } else {

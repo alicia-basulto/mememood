@@ -11,7 +11,7 @@ export default async function handler(
 
     console.log("Post done")
 
-    res.status(200).json({ message: 'File saved successfully!' })
+    res.status(200).json({ message: 'File previed successfully!' })
 
   } else {
     res.status(405).json({ message: 'Method not allowed' })
